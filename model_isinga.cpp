@@ -7,6 +7,13 @@ ModelIsinga::ModelIsinga(int rozmiar, int energia)
         siatka[i] = new int[L];
 }
 
+ModelIsinga::ModelIsinga(int rozmiar, float temperatura)
+    : L{rozmiar}, temperatura_docelowa_ukladu{temperatura}, generator{rozmiar} {
+    siatka = new int*[L];
+    for (int i = 0; i < L; i++)
+        siatka[i] = new int[L];
+}
+
 ModelIsinga::~ModelIsinga() {
     if (siatka) {
         for (int i = 0; i < L; i++)
@@ -45,6 +52,35 @@ void ModelIsinga::sprobuj_odwrocic_spin_losowego_atomu() {
         energia_duszka -= dE;
         energia_poczatkowa_ukladu += dE;
         magnetyzacja += 2 * siatka[i][j];
+    }
+}
+
+void ModelIsinga::sprobuj_odwrocic_spin_losowego_atomu_kanoniczny() {
+    int i = generator.losuj_wspolrzedna();
+    int j = generator.losuj_wspolrzedna();
+    int dE = deltaE(i, j);
+
+    float w = exp(-dE / (aktualna_temperatura));
+    float random_float = generator.losuj_z_zakresu_0_1();
+    printf("w = %f\n", w);
+
+    if (dE <= 0 || random_float < w) {
+        siatka[i][j] = -siatka[i][j];
+        energia_poczatkowa_ukladu += dE;
+        magnetyzacja += 2 * siatka[i][j];
+    }
+}
+
+void ModelIsinga::doprowadzenie_do_stanu_rownowagi_kanoniczny(
+    int liczba_krokow) {
+    magnetyzacja = L * L;
+    energia_poczatkowa_ukladu = -2 * L * L;
+    energia_duszka = energia_docelowa_ukladu - energia_poczatkowa_ukladu;
+    temperatura_poczatkowa_ukladu = 4.0 / (log(1 + 4.0 / energia_duszka));
+    ustaw_same_jedynki();
+
+    for (int k = 0; k < liczba_krokow; ++k) {
+        sprobuj_odwrocic_spin_losowego_atomu_kanoniczny();
     }
 }
 
